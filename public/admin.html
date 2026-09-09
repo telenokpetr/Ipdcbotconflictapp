@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ — участники</title>
+<style>
+  :root{
+    --bg:#1C1B1F; --surface:#26242A; --line:#3A3740; --text:#EDEAE4; --text-dim:#9C97A0; --accent-gold:#B99457;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:24px; }
+  h1{ font-size:20px; margin:0 0 18px 0; }
+  .toolbar{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+  input, button{ font-family:inherit; font-size:14px; }
+  input{ background:var(--surface); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:10px 12px; flex:1; min-width:200px; }
+  button{ background:var(--accent-gold); color:#1C1B1F; border:none; border-radius:8px; padding:10px 16px; cursor:pointer; font-weight:600; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ color:var(--text-dim); font-weight:500; }
+  .tag{ display:inline-block; padding:3px 8px; border-radius:10px; font-size:12px; background:var(--surface); border:1px solid var(--line); }
+  .muted{ color:var(--text-dim); }
+  .status{ font-size:13px; color:var(--text-dim); margin-bottom:12px; }
+  .wrap{ overflow-x:auto; }
+</style>
+</head>
+<body>
+  <h1>Участники диагностики</h1>
+  <div class="toolbar">
+    <input type="password" id="tokenInput" placeholder="Токен администратора (ADMIN_TOKEN)">
+    <button onclick="load()">Показать</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="wrap">
+    <table id="tbl" style="display:none;">
+      <thead>
+        <tr>
+          <th>Имя</th><th>Роль</th><th>Контакт</th><th>Профиль</th><th>Тест пройден</th><th>Бронь</th><th>Регистрация</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+<script>
+  const savedToken = sessionStorage.getItem('adminToken');
+  if(savedToken){ document.getElementById('tokenInput').value = savedToken; }
+
+  async function load(){
+    const token = document.getElementById('tokenInput').value.trim();
+    const statusEl = document.getElementById('status');
+    const tbl = document.getElementById('tbl');
+    const tbody = document.getElementById('tbody');
+
+    if(!token){ statusEl.textContent = 'Введите токен администратора.'; return; }
+    sessionStorage.setItem('adminToken', token);
+    statusEl.textContent = 'Загрузка…';
+
+    try{
+      const res = await fetch('/api/admin/participants', {
+        headers: { 'x-admin-token': token }
+      });
+      const data = await res.json();
+      if(!res.ok){ throw new Error(data.error || 'Ошибка запроса'); }
+
+      tbody.innerHTML = '';
+      data.participants
+        .slice()
+        .reverse()
+        .forEach(p => {
+          const tr = document.createElement('tr');
+
+          const cells = [
+            p.name || '—',
+            p.role || '—',
+            p.contact || '—',
+            p.profile ? profileLabel(p.profile) : '—',
+            p.resultAt ? formatDate(p.resultAt) : '—',
+            p.booked ? 'да' : 'нет',
+            p.createdAt ? formatDate(p.createdAt) : '—'
+          ];
+
+          cells.forEach(val => {
+            const td = document.createElement('td');
+            td.textContent = val;
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+
+      tbl.style.display = data.participants.length ? 'table' : 'none';
+      statusEl.textContent = data.participants.length
+        ? ('Всего участников: ' + data.participants.length)
+        : 'Пока нет регистраций.';
+    }catch(err){
+      statusEl.textContent = 'Ошибка: ' + (err.message || 'не удалось загрузить данные');
+      tbl.style.display = 'none';
+    }
+  }
+
+  function profileLabel(key){
+    return { AV: 'Сглаживающий', B: 'Борец', G: 'Аналитик' }[key] || key;
+  }
+
+  function formatDate(iso){
+    const d = new Date(iso);
+    return d.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  if(savedToken){ load(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Конфликт интересов — диагностика</title>
+<style>
+
+  :root{
+    --bg: #1C1B1F;
+    --surface: #26242A;
+    --surface-raised: #302D34;
+    --line: #3A3740;
+    --text: #EDEAE4;
+    --text-dim: #9C97A0;
+    --accent-warm: #B5563C;
+    --accent-cool: #4C6B7A;
+    --accent-gold: #B99457;
+    --error: #C0554E;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .headline{
+    font-family: "Iowan Old Style", "Georgia", "Times New Roman", serif;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+  }
+
+  #app{
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rail{ display:flex; gap: 6px; padding: 18px 20px 0 20px; }
+  .rail-seg{ flex:1; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .rail-seg > i{ display:block; height:100%; width:0%; background: var(--accent-gold); transition: width .4s ease; }
+
+  .screen{ display:none; flex-direction: column; flex: 1; padding: 28px 24px 32px 24px; animation: rise .35s ease; }
+  .screen.active{ display:flex; }
+
+  @keyframes rise{ from{ opacity:0; transform: translateY(8px); } to{ opacity:1; transform: translateY(0); } }
+
+  .eyebrow{ color: var(--text-dim); font-size: 13px; margin: 0 0 10px 0; line-height: 1.4; }
+
+  h1.headline{ font-size: 26px; line-height: 1.28; margin: 0 0 14px 0; }
+  h2.headline{ font-size: 21px; line-height: 1.3; margin: 0 0 12px 0; }
+
+  p.body{ font-size: 15px; line-height: 1.6; color: var(--text); margin: 0 0 14px 0; }
+  p.body.dim{ color: var(--text-dim); }
+
+  .card{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .card .card-title{ font-size: 13px; color: var(--text-dim); margin: 0 0 6px 0; }
+
+  .meta-row{ display:flex; gap: 10px; font-size: 14px; color: var(--text); margin-bottom: 8px; }
+  .meta-row .dot{ color: var(--text-dim); }
+
+  .spacer{ flex:1; }
+
+  .btn{
+    appearance:none; border:none; width:100%; padding: 15px 20px; border-radius: 12px;
+    font-size: 16px; font-weight: 600; cursor:pointer; font-family: inherit;
+    transition: transform .12s ease, opacity .12s ease;
+  }
+  .btn:active{ transform: scale(0.98); }
+  .btn-primary{ background: var(--accent-gold); color: #1C1B1F; }
+  .btn-primary:disabled{ opacity: 0.35; cursor: not-allowed; }
+  .btn-ghost{ background: transparent; color: var(--text-dim); border: 1px solid var(--line); margin-top: 10px; }
+
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+  .field input{
+    width:100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 13px 14px; color: var(--text); font-size: 15px; font-family: inherit;
+  }
+  .field input:focus{ outline: none; border-color: var(--accent-gold); }
+  .field input:focus-visible{ outline: 2px solid var(--accent-gold); outline-offset: 1px; }
+
+  .consent{
+    display:flex; gap: 12px; align-items:flex-start; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 18px; cursor: pointer;
+  }
+  .consent input{ margin-top: 2px; width: 18px; height: 18px; accent-color: var(--accent-gold); flex-shrink:0; }
+  .consent span{ font-size: 13.5px; line-height: 1.5; color: var(--text-dim); }
+  .consent span a{ color: var(--accent-gold); text-decoration: underline; }
+
+  .q-progress{ font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+
+  .options{ display:flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+  .option{
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+    font-size: 14.5px; line-height: 1.5; cursor: pointer; display:flex; gap: 12px; align-items:flex-start;
+  }
+  .option:active{ transform: scale(0.99); }
+  .option.selected{ border-color: var(--accent-gold); background: var(--surface-raised); }
+  .option .letter{
+    flex-shrink:0; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size: 12.5px; color: var(--text-dim);
+  }
+  .option.selected .letter{ border-color: var(--accent-gold); color: var(--accent-gold); }
+
+  .profile-tag{ display:inline-block; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+
+  .growth-list{ margin: 0; padding-left: 18px; }
+  .growth-list li{ font-size: 14.5px; line-height: 1.55; margin-bottom: 8px; color: var(--text); }
+
+  .session-row{ display:flex; justify-content: space-between; align-items:center; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+  .session-row:last-child{ border-bottom:none; }
+  .session-row .k{ color: var(--text-dim); }
+
+  .error-msg{
+    font-size: 13px; color: var(--error); background: rgba(192,85,78,0.12);
+    border: 1px solid rgba(192,85,78,0.4); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; display:none;
+  }
+  .error-msg.show{ display:block; }
+
+  .toast{
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: var(--surface-raised); border: 1px solid var(--line); color: var(--text);
+    padding: 12px 18px; border-radius: 10px; font-size: 14px; opacity:0; pointer-events:none;
+    transition: opacity .25s ease; max-width: 90%; text-align:center; z-index: 10;
+  }
+  .toast.show{ opacity:1; }
+
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="rail" id="rail"></div>
+
+  <!-- 1. ПРИВЕТСТВИЕ -->
+  <section class="screen active" data-screen="0">
+    <p class="eyebrow">IPDC · пульс-диагностика</p>
+    <h1 class="headline">Как вы обращаетесь с конфликтом интересов?</h1>
+    <p class="body">5 минут — и вы получите представление о своей конфликтной устойчивости и зонах роста.</p>
+
+    <div class="card">
+      <p class="card-title">Тренинг «Конфликт интересов»</p>
+      <p class="body" style="margin-bottom:0;">Формат групповой работы, кейсов и проживания ролей — для тех, кто регулярно сталкивается со столкновением интересов в команде и в переговорах.</p>
+    </div>
+
+    <div class="card">
+      <div class="meta-row"><span>Ведущие</span><span class="dot">·</span><span>преподаватели IPDC, 12 лет опыта</span></div>
+      <div class="meta-row"><span>Группа</span><span class="dot">·</span><span>до 20 человек</span></div>
+      <div class="meta-row" style="margin-bottom:0;"><span>Участники</span><span class="dot">·</span><span>руководители, консультанты, коучи, HR</span></div>
+    </div>
+
+    <p class="body dim">Сначала — короткая диагностика. Она покажет, где вы сейчас находитесь и что может стать следующим шагом. Это не тест на правильность.</p>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="goTo(1)">Начать</button>
+  </section>
+
+  <!-- 2. СОГЛАСИЕ -->
+  <section class="screen" data-screen="1">
+    <p class="eyebrow">Шаг 1 из 3</p>
+    <h2 class="headline">Прежде чем начать</h2>
+    <p class="body">Чтобы сохранить ваш результат и прислать рекомендации, нам нужно немного данных о вас. Заполнение займёт меньше минуты.</p>
+
+    <div class="spacer"></div>
+
+    <label class="consent">
+      <input type="checkbox" id="consentBox" onchange="toggleConsent()">
+      <span>Я даю согласие на обработку персональных данных в соответствии с <a href="#" onclick="return false;">политикой конфиденциальности</a> IPDC.</span>
+    </label>
+
+    <button class="btn btn-primary" id="registerBtn" disabled onclick="goTo(2)">Зарегистрироваться</button>
+    <button class="btn btn-ghost" onclick="goTo(0)">Назад</button>
+  </section>
+
+  <!-- 3. РЕГИСТРАЦИЯ -->
+  <section class="screen" data-screen="2">
+    <p class="eyebrow">Шаг 2 из 3</p>
+    <h2 class="headline">Немного о вас</h2>
+
+    <div class="error-msg" id="regError"></div>
+
+    <div class="field">
+      <label for="fName">Имя</label>
+      <input type="text" id="fName" placeholder="Как к вам обращаться">
+    </div>
+    <div class="field">
+      <label for="fRole">Роль</label>
+      <input type="text" id="fRole" placeholder="Например: руководитель отдела">
+    </div>
+    <div class="field">
+      <label for="fContact">Email или телефон</label>
+      <input type="text" id="fContact" placeholder="Для отправки результата">
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="toTestBtn" disabled onclick="submitRegistration()">К диагностике</button>
+    <button class="btn btn-ghost" onclick="goTo(1)">Назад</button>
+  </section>
+
+  <!-- 4. ТЕСТ -->
+  <section class="screen" data-screen="3">
+    <p class="eyebrow">Шаг 3 из 3</p>
+    <div class="q-progress" id="qProgress">Вопрос 1 из 5</div>
+    <h2 class="headline" id="qText">—</h2>
+    <div class="options" id="qOptions"></div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" id="qBackBtn" onclick="prevQuestion()">Назад</button>
+  </section>
+
+  <!-- 5. РЕЗУЛЬТАТ -->
+  <section class="screen" data-screen="4">
+    <p class="eyebrow">Ваш результат</p>
+    <span class="profile-tag" id="profileTag">—</span>
+    <h2 class="headline" id="profileTitle">—</h2>
+    <p class="body" id="profileText">—</p>
+
+    <div class="card">
+      <p class="card-title">Зоны роста</p>
+      <ul class="growth-list" id="growthList"></ul>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Что даст тренинг именно вам</p>
+      <ul class="growth-list" id="giveList"></ul>
+    </div>
+
+    <p class="body dim">Это диагностика, а не оценка компетентности. Она показывает, где вы сейчас — и что может стать следующим шагом.</p>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="goTo(5)">Что дальше</button>
+  </section>
+
+  <!-- 6. ПРИГЛАШЕНИЕ -->
+  <section class="screen" data-screen="5">
+    <p class="eyebrow">Приглашение</p>
+    <h2 class="headline">Тренинг «Конфликт интересов»</h2>
+    <p class="body">Не курс лекций — пространство, где вы проверите свои гипотезы, увидите свои паттерны и освоите новый способ обращения с конфликтами.</p>
+
+    <div class="card">
+      <div class="session-row"><span class="k">Даты</span><span>11 и 18 февраля</span></div>
+      <div class="session-row"><span class="k">Время</span><span>18:00–21:00 МСК</span></div>
+      <div class="session-row"><span class="k">Формат</span><span>Онлайн, Zoom</span></div>
+      <div class="session-row"><span class="k">Группа</span><span>до 20 человек</span></div>
+    </div>
+
+    <p class="body dim">Ваш профиль по результатам диагностики сохранён — это поможет ведущим точнее подобрать акценты для вашей группы.</p>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="bookBtn" onclick="submitBooking()">Забронировать место</button>
+    <button class="btn btn-ghost" onclick="showToast('Ссылка на подробную программу тренинга')">Узнать подробности</button>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+  // Тексты и категории вопросов — должны соответствовать серверной логике в server.js
+  const QUESTIONS = [
+    {
+      text: "Когда в команде возникает напряжение, вы чаще всего:",
+      options: [
+        { letter: "А", text: "Стараетесь его сгладить, перевести в шутку или отложить разговор." },
+        { letter: "Б", text: "Прямо обозначаете проблему и идёте в обсуждение." },
+        { letter: "В", text: "Замечаете, но ждёте, пока кто-то другой поднимет тему." },
+        { letter: "Г", text: "Анализируете, кто и почему вступил в конфликт, и выбираете момент для разговора." }
+      ]
+    },
+    {
+      text: "В переговорах, где ваши интересы сталкиваются с интересами другой стороны, вы:",
+      options: [
+        { letter: "А", text: "Ищете компромисс, даже если он не идеален для вас." },
+        { letter: "Б", text: "Отстаиваете свою позицию до конца." },
+        { letter: "В", text: "Часто соглашаетесь, чтобы сохранить отношения." },
+        { letter: "Г", text: "Пытаетесь понять глубинные интересы другой стороны и найти неочевидное решение." }
+      ]
+    },
+    {
+      text: "Когда вам кажется, что ваши границы нарушены, вы:",
+      options: [
+        { letter: "А", text: "Долго перевариваете внутри, но внешне никак не проявляете." },
+        { letter: "Б", text: "Реагируете резко — иногда острее, чем хотели бы." },
+        { letter: "В", text: "Проговариваете это спокойно, но не всегда сразу." },
+        { letter: "Г", text: "Осознаёте нарушение, фиксируете его и возвращаетесь к обсуждению в удобный момент." }
+      ]
+    },
+    {
+      text: "В условиях неопределённости и высокого давления вы:",
+      options: [
+        { letter: "А", text: "Теряете ясность и начинаете сомневаться в решениях." },
+        { letter: "Б", text: "Мобилизуетесь и действуете жёстко." },
+        { letter: "В", text: "Ощущаете тревогу, но продолжаете работать в прежнем режиме." },
+        { letter: "Г", text: "Сохраняете способность анализировать и принимать решения, даже если внутри неспокойно." }
+      ]
+    },
+    {
+      text: "В вашей команде регулярно повторяются одни и те же конфликтные сценарии. Вы:",
+      options: [
+        { letter: "А", text: "Замечаете это, но не знаете, как разорвать круг." },
+        { letter: "Б", text: "Пытаетесь ввести новые правила или процедуры." },
+        { letter: "В", text: "Считаете, что это «издержки профессии», и принимаете как данность." },
+        { letter: "Г", text: "Видите системную динамику и ищете, как изменить структуру взаимодействия." }
+      ]
+    }
+  ];
+
+  const PROFILES = {
+    AV: {
+      tag: "Сглаживающий", tagColor: "var(--accent-cool)",
+      title: "Сглаживающий — с риском потери собственной позиции",
+      text: "Вы цените гармонию в отношениях и часто готовы уступить ради сохранения мира. Это помогает избегать острых углов, но имеет обратную сторону: ваши интересы остаются невысказанными, а напряжение копится внутри. Вы можете долго терпеть, а потом неожиданно «взорваться» — или просто выгореть.",
+      growth: [
+        "Умение распознавать свои интересы до того, как они вступят в конфликт с чужими.",
+        "Способность выдерживать напряжение в разговоре, не сбегая в шутку или согласие.",
+        "Понимание своих границ и навык их спокойного проговаривания."
+      ],
+      give: [
+        "Инструменты для диагностики конфликтной ситуации без потери собственной позиции.",
+        "Опыт проживания разных ролей в безопасной среде.",
+        "Понимание, где проходят ваши границы и как их удерживать в сложных переговорах."
+      ]
+    },
+    B: {
+      tag: "Борец", tagColor: "var(--accent-warm)",
+      title: "Борец — с риском разрушения отношений",
+      text: "Вы умеете отстаивать своё и не боитесь острых разговоров. Это ваша сила. Но иногда ваша прямота воспринимается как давление, а напряжение перерастает в конфронтацию, которая уничтожает сотрудничество. Вы можете добиваться своего, но терять доверие и ресурс команды.",
+      growth: [
+        "Видеть системную подоплёку конфликта, а не только свою правоту.",
+        "Переходить от борьбы к кооперации, не теряя влияния.",
+        "Сохранять устойчивость, не переходя в атаку."
+      ],
+      give: [
+        "Понимание, как устроена динамика власти и ресурсов в конфликте.",
+        "Навык выхода в режим сотрудничества без потери позиции.",
+        "Возможность увидеть собственные паттерны и их влияние на команду."
+      ]
+    },
+    G: {
+      tag: "Аналитик", tagColor: "var(--accent-gold)",
+      title: "Аналитик — с риском избыточной рефлексии",
+      text: "Вы хорошо чувствуете динамику и умеете анализировать. Но иногда вы слишком долго думаете, упуская момент для действия. Или видите все стороны так ясно, что вам сложно занять свою позицию — вы теряете влияние из-за нерешительности.",
+      growth: [
+        "Переход от анализа к действию в условиях неопределённости.",
+        "Умение занимать и удерживать свою позицию, не сливаясь с системой.",
+        "Работа с властью и влиянием как с ресурсами."
+      ],
+      give: [
+        "Возможность прожить разные роли и проверить свою гипотезу в действии.",
+        "Навык сохранения устойчивости в моменты, когда анализ уже не спасает.",
+        "Опыт принятия решений в групповой динамике."
+      ]
+    }
+  };
+
+  const TOTAL_SCREENS = 6;
+  let currentScreen = 0;
+  let currentQuestion = 0;
+  let participantId = null;
+  const answers = new Array(QUESTIONS.length).fill(null);
+
+  function buildRail(){
+    const rail = document.getElementById('rail');
+    rail.innerHTML = '';
+    for(let i=0;i<TOTAL_SCREENS;i++){
+      const seg = document.createElement('div');
+      seg.className = 'rail-seg';
+      seg.innerHTML = '<i></i>';
+      rail.appendChild(seg);
+    }
+  }
+
+  function updateRail(){
+    document.querySelectorAll('.rail-seg > i').forEach((s, i) => { s.style.width = (i <= currentScreen) ? '100%' : '0%'; });
+  }
+
+  function goTo(screenIndex){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelector('[data-screen="'+screenIndex+'"]').classList.add('active');
+    currentScreen = screenIndex;
+    updateRail();
+    if(screenIndex === 3){ renderQuestion(); }
+    window.scrollTo(0,0);
+  }
+
+  function toggleConsent(){
+    document.getElementById('registerBtn').disabled = !document.getElementById('consentBox').checked;
+  }
+
+  function checkRegForm(){
+    const name = document.getElementById('fName').value.trim();
+    const contact = document.getElementById('fContact').value.trim();
+    document.getElementById('toTestBtn').disabled = !(name && contact);
+  }
+
+  function showRegError(msg){
+    const el = document.getElementById('regError');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideRegError(){
+    document.getElementById('regError').classList.remove('show');
+  }
+
+  async function submitRegistration(){
+    hideRegError();
+    const btn = document.getElementById('toTestBtn');
+    const payload = {
+      name: document.getElementById('fName').value.trim(),
+      role: document.getElementById('fRole').value.trim(),
+      contact: document.getElementById('fContact').value.trim(),
+      consent: document.getElementById('consentBox').checked
+    };
+    btn.disabled = true;
+    btn.textContent = 'Секунду…';
+    try{
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(!res.ok){ throw new Error(data.error || 'Не удалось зарегистрироваться'); }
+      participantId = data.id;
+      goTo(3);
+    }catch(err){
+      showRegError(err.message || 'Не удалось связаться с сервером. Попробуйте ещё раз.');
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'К диагностике';
+    }
+  }
+
+  function renderQuestion(){
+    const q = QUESTIONS[currentQuestion];
+    document.getElementById('qProgress').textContent = 'Вопрос ' + (currentQuestion+1) + ' из ' + QUESTIONS.length;
+    document.getElementById('qText').textContent = q.text;
+    const optWrap = document.getElementById('qOptions');
+    optWrap.innerHTML = '';
+    q.options.forEach(opt => {
+      const div = document.createElement('div');
+      div.className = 'option' + (answers[currentQuestion] === opt.letter ? ' selected' : '');
+      const letterSpan = document.createElement('span');
+      letterSpan.className = 'letter';
+      letterSpan.textContent = opt.letter;
+      const textSpan = document.createElement('span');
+      textSpan.textContent = opt.text;
+      div.appendChild(letterSpan);
+      div.appendChild(textSpan);
+      div.onclick = () => selectAnswer(opt.letter);
+      optWrap.appendChild(div);
+    });
+    document.getElementById('qBackBtn').style.visibility = currentQuestion === 0 ? 'hidden' : 'visible';
+  }
+
+  function selectAnswer(letter){
+    answers[currentQuestion] = letter;
+    renderQuestion();
+    setTimeout(() => {
+      if(currentQuestion < QUESTIONS.length - 1){
+        currentQuestion++;
+        renderQuestion();
+      } else {
+        submitResults();
+      }
+    }, 220);
+  }
+
+  function prevQuestion(){
+    if(currentQuestion > 0){
+      currentQuestion--;
+      renderQuestion();
+    } else {
+      goTo(2);
+    }
+  }
+
+  function localFallbackProfile(){
+    // используется только если сервер недоступен — та же логика, что и на бэкенде
+    const CATS = { А:'AV', Б:'B', В:'AV', Г:'G' };
+    const scores = { AV:0, B:0, G:0 };
+    answers.forEach(letter => { if(letter) scores[CATS[letter]]++; });
+    let top = 'AV', topScore = -1;
+    Object.keys(scores).forEach(cat => { if(scores[cat] > topScore){ topScore = scores[cat]; top = cat; } });
+    return top;
+  }
+
+  async function submitResults(){
+    goTo(4);
+    let profileKey;
+    try{
+      const res = await fetch('/api/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId, answers })
+      });
+      const data = await res.json();
+      if(!res.ok){ throw new Error(data.error || 'Ошибка сохранения результата'); }
+      profileKey = data.profile;
+    }catch(err){
+      showToast('Результат посчитан локально: нет связи с сервером');
+      profileKey = localFallbackProfile();
+    }
+    renderResult(profileKey);
+  }
+
+  function renderResult(key){
+    const p = PROFILES[key] || PROFILES.AV;
+    const tag = document.getElementById('profileTag');
+    tag.textContent = p.tag;
+    tag.style.background = p.tagColor;
+    tag.style.color = (key === 'G') ? '#1C1B1F' : '#EDEAE4';
+    document.getElementById('profileTitle').textContent = p.title;
+    document.getElementById('profileText').textContent = p.text;
+
+    const growthList = document.getElementById('growthList');
+    growthList.innerHTML = '';
+    p.growth.forEach(item => { const li = document.createElement('li'); li.textContent = item; growthList.appendChild(li); });
+
+    const giveList = document.getElementById('giveList');
+    giveList.innerHTML = '';
+    p.give.forEach(item => { const li = document.createElement('li'); li.textContent = item; giveList.appendChild(li); });
+  }
+
+  async function submitBooking(){
+    const btn = document.getElementById('bookBtn');
+    btn.disabled = true;
+    btn.textContent = 'Секунду…';
+    try{
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId })
+      });
+      const data = await res.json();
+      if(!res.ok){ throw new Error(data.error || 'Не удалось отправить заявку'); }
+      showToast('Заявка отправлена. Мы свяжемся с вами.');
+      btn.textContent = 'Место забронировано';
+    }catch(err){
+      showToast(err.message || 'Не удалось отправить заявку');
+      btn.disabled = false;
+      btn.textContent = 'Забронировать место';
+    }
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  if(window.Telegram && window.Telegram.WebApp){
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+  }
+
+  buildRail();
+  updateRail();
+  document.getElementById('fName').addEventListener('input', checkRegForm);
+  document.getElementById('fRole').addEventListener('input', checkRegForm);
+  document.getElementById('fContact').addEventListener('input', checkRegForm);
+
+</script>
+</body>
+</html>
