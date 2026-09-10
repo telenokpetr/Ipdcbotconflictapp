@@ -45,6 +45,18 @@ function withLock(fn) {
   return result;
 }
 
+const MAX_ATTEMPTS = 5;
+
+// участники, заведённые до появления истории попыток, хранили только
+// последний результат — при первом обращении превращаем его в attempts[0]
+function ensureAttempts(p) {
+  if (!Array.isArray(p.attempts)) {
+    p.attempts = p.profile
+      ? [{ answers: p.answers, profile: p.profile, scores: p.scores, at: p.resultAt }]
+      : [];
+  }
+}
+
 function createParticipant({ name, role, phone, email }) {
   return withLock(() => {
     const data = readAll();
@@ -57,6 +69,7 @@ function createParticipant({ name, role, phone, email }) {
       consent: true,
       consentAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      attempts: [],
       answers: null,
       profile: null,
       resultAt: null,
@@ -71,20 +84,28 @@ function createParticipant({ name, role, phone, email }) {
 
 function findParticipant(id) {
   const data = readAll();
-  return data.participants.find(p => p.id === id) || null;
+  const p = data.participants.find(p => p.id === id) || null;
+  if (p) ensureAttempts(p);
+  return p;
 }
 
 function saveResult(id, answers, profile, scores) {
   return withLock(() => {
     const data = readAll();
     const p = data.participants.find(x => x.id === id);
-    if (!p) return null;
+    if (!p) return { ok: false, reason: 'not_found' };
+    ensureAttempts(p);
+    if (p.attempts.length >= MAX_ATTEMPTS) {
+      return { ok: false, reason: 'limit' };
+    }
+    const at = new Date().toISOString();
+    p.attempts.push({ answers, profile, scores, at });
     p.answers = answers;
     p.profile = profile;
     p.scores = scores;
-    p.resultAt = new Date().toISOString();
+    p.resultAt = at;
     writeAll(data);
-    return p;
+    return { ok: true, participant: p, attemptNumber: p.attempts.length };
   });
 }
 
@@ -101,7 +122,9 @@ function markBooked(id) {
 }
 
 function listParticipants() {
-  return readAll().participants;
+  const list = readAll().participants;
+  list.forEach(ensureAttempts);
+  return list;
 }
 
 module.exports = {
@@ -109,5 +132,6 @@ module.exports = {
   findParticipant,
   saveResult,
   markBooked,
-  listParticipants
+  listParticipants,
+  MAX_ATTEMPTS
 };

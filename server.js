@@ -112,8 +112,19 @@ app.post('/api/results', async (req, res) => {
   const { profile, scores } = computeProfile(answers);
 
   try {
-    await db.saveResult(participantId, answers, profile, scores);
-    res.json({ profile, scores });
+    const result = await db.saveResult(participantId, answers, profile, scores);
+    if (!result.ok) {
+      if (result.reason === 'limit') {
+        return res.status(429).json({ error: `Достигнут лимит попыток (${db.MAX_ATTEMPTS})` });
+      }
+      return res.status(404).json({ error: 'Участник не найден. Пройдите регистрацию заново.' });
+    }
+    res.json({
+      profile,
+      scores,
+      attemptNumber: result.attemptNumber,
+      attemptsLeft: db.MAX_ATTEMPTS - result.attemptNumber
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Не удалось сохранить результат' });

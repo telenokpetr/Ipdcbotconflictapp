@@ -510,9 +510,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId, answers })
       });
-      const data = await res.json();
-      if(!res.ok){ throw new Error(data.error || 'Ошибка сохранения результата'); }
-      profileKey = data.profile;
+      const data = await res.json().catch(() => ({}));
+      if(!res.ok){
+        showToast(data.error || 'Не удалось сохранить результат на сервере');
+        profileKey = localFallbackProfile();
+      } else {
+        profileKey = data.profile;
+      }
     }catch(err){
       showToast('Результат посчитан локально: нет связи с сервером');
       profileKey = localFallbackProfile();
