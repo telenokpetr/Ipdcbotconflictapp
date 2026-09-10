@@ -43,6 +43,7 @@ Type=simple
 WorkingDirectory=${APP_DIR}
 ExecStart=/usr/bin/node server.js
 Restart=on-failure
+Environment=NODE_ENV=production
 Environment=PORT=${PORT}
 Environment=ADMIN_TOKEN=${ADMIN_TOKEN}
 User=www-data
