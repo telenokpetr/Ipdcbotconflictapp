@@ -147,6 +147,43 @@ app.get('/api/admin/participants', requireAdmin, (req, res) => {
   }
 });
 
+// ---- Админ: сводная статистика ----
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+  try {
+    const list = db.listParticipants();
+
+    const total = list.length;
+    const completed = list.filter(p => p.profile).length;
+    const booked = list.filter(p => p.booked).length;
+
+    const profileCounts = { AV: 0, B: 0, G: 0 };
+    list.forEach(p => {
+      if (p.profile && profileCounts[p.profile] !== undefined) {
+        profileCounts[p.profile]++;
+      }
+    });
+
+    const byRole = {};
+    list.forEach(p => {
+      const key = p.role && p.role.trim() ? p.role.trim() : 'Не указана';
+      byRole[key] = (byRole[key] || 0) + 1;
+    });
+
+    res.json({
+      total,
+      completed,
+      completionRate: total ? Math.round((completed / total) * 100) : 0,
+      booked,
+      bookingRate: total ? Math.round((booked / total) * 100) : 0,
+      profileCounts,
+      byRole
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Не удалось построить статистику' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log('Сервер запущен: http://localhost:' + PORT);
 });

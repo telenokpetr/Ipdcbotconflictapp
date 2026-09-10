@@ -11,6 +11,7 @@
   *{ box-sizing:border-box; }
   body{ margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:24px; }
   h1{ font-size:20px; margin:0 0 18px 0; }
+  h2{ font-size:15px; margin:28px 0 12px 0; color:var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
   .toolbar{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
   input, button{ font-family:inherit; font-size:14px; }
   input{ background:var(--surface); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:10px 12px; flex:1; min-width:200px; }
@@ -22,6 +23,19 @@
   .muted{ color:var(--text-dim); }
   .status{ font-size:13px; color:var(--text-dim); margin-bottom:12px; }
   .wrap{ overflow-x:auto; }
+  .answers{ font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  .cards{ display:flex; gap:12px; flex-wrap:wrap; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 18px; min-width:140px; flex:1; }
+  .card .num{ font-size:24px; font-weight:700; }
+  .card .label{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+
+  .bars{ display:flex; flex-direction:column; gap:10px; max-width:520px; }
+  .bar-row{ display:flex; align-items:center; gap:10px; font-size:13px; }
+  .bar-row .bar-label{ width:150px; flex-shrink:0; color:var(--text-dim); }
+  .bar-track{ flex:1; background:var(--surface); border:1px solid var(--line); border-radius:6px; height:16px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--accent-gold); }
+  .bar-row .bar-val{ width:70px; flex-shrink:0; text-align:right; }
 </style>
 </head>
 <body>
@@ -31,11 +45,28 @@
     <button onclick="load()">Показать</button>
   </div>
   <div class="status" id="status"></div>
+
+  <div id="statsBlock" style="display:none;">
+    <h2>Статистика</h2>
+    <div class="cards">
+      <div class="card"><div class="num" id="stTotal">—</div><div class="label">Всего регистраций</div></div>
+      <div class="card"><div class="num" id="stCompleted">—</div><div class="label">Прошли тест</div></div>
+      <div class="card"><div class="num" id="stBooked">—</div><div class="label">Забронировали тренинг</div></div>
+    </div>
+
+    <h2>Распределение профилей</h2>
+    <div class="bars" id="profileBars"></div>
+
+    <h2>По ролям</h2>
+    <div class="bars" id="roleBars"></div>
+  </div>
+
+  <h2>Данные участников и ответы</h2>
   <div class="wrap">
     <table id="tbl" style="display:none;">
       <thead>
         <tr>
-          <th>Имя</th><th>Роль</th><th>Контакт</th><th>Профиль</th><th>Тест пройден</th><th>Бронь</th><th>Регистрация</th>
+          <th>Имя</th><th>Роль</th><th>Контакт</th><th>Профиль</th><th>Ответы</th><th>Тест пройден</th><th>Бронь</th><th>Регистрация</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -49,54 +80,106 @@
   async function load(){
     const token = document.getElementById('tokenInput').value.trim();
     const statusEl = document.getElementById('status');
-    const tbl = document.getElementById('tbl');
-    const tbody = document.getElementById('tbody');
 
     if(!token){ statusEl.textContent = 'Введите токен администратора.'; return; }
     sessionStorage.setItem('adminToken', token);
     statusEl.textContent = 'Загрузка…';
 
     try{
-      const res = await fetch('/api/admin/participants', {
-        headers: { 'x-admin-token': token }
-      });
-      const data = await res.json();
-      if(!res.ok){ throw new Error(data.error || 'Ошибка запроса'); }
+      const [participantsRes, statsRes] = await Promise.all([
+        fetch('/api/admin/participants', { headers: { 'x-admin-token': token } }),
+        fetch('/api/admin/stats', { headers: { 'x-admin-token': token } })
+      ]);
+      const participantsData = await participantsRes.json();
+      const statsData = await statsRes.json();
+      if(!participantsRes.ok){ throw new Error(participantsData.error || 'Ошибка запроса участников'); }
+      if(!statsRes.ok){ throw new Error(statsData.error || 'Ошибка запроса статистики'); }
 
-      tbody.innerHTML = '';
-      data.participants
-        .slice()
-        .reverse()
-        .forEach(p => {
-          const tr = document.createElement('tr');
+      renderStats(statsData);
+      renderParticipants(participantsData.participants);
 
-          const cells = [
-            p.name || '—',
-            p.role || '—',
-            p.contact || '—',
-            p.profile ? profileLabel(p.profile) : '—',
-            p.resultAt ? formatDate(p.resultAt) : '—',
-            p.booked ? 'да' : 'нет',
-            p.createdAt ? formatDate(p.createdAt) : '—'
-          ];
-
-          cells.forEach(val => {
-            const td = document.createElement('td');
-            td.textContent = val;
-            tr.appendChild(td);
-          });
-
-          tbody.appendChild(tr);
-        });
-
-      tbl.style.display = data.participants.length ? 'table' : 'none';
-      statusEl.textContent = data.participants.length
-        ? ('Всего участников: ' + data.participants.length)
+      statusEl.textContent = participantsData.participants.length
+        ? ('Всего участников: ' + participantsData.participants.length)
         : 'Пока нет регистраций.';
     }catch(err){
       statusEl.textContent = 'Ошибка: ' + (err.message || 'не удалось загрузить данные');
-      tbl.style.display = 'none';
+      document.getElementById('tbl').style.display = 'none';
+      document.getElementById('statsBlock').style.display = 'none';
     }
+  }
+
+  function renderStats(stats){
+    const block = document.getElementById('statsBlock');
+    block.style.display = 'block';
+
+    document.getElementById('stTotal').textContent = stats.total;
+    document.getElementById('stCompleted').textContent = stats.completed + ' (' + stats.completionRate + '%)';
+    document.getElementById('stBooked').textContent = stats.booked + ' (' + stats.bookingRate + '%)';
+
+    const profileEntries = Object.entries(stats.profileCounts)
+      .map(([key, count]) => ({ label: profileLabel(key), count }));
+    renderBars('profileBars', profileEntries, stats.total);
+
+    const roleEntries = Object.entries(stats.byRole)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, count]) => ({ label, count }));
+    renderBars('roleBars', roleEntries, stats.total);
+  }
+
+  function renderBars(containerId, entries, total){
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    if(!entries.length || !total){
+      container.innerHTML = '<div class="muted">Нет данных</div>';
+      return;
+    }
+    entries.forEach(({ label, count }) => {
+      const pct = total ? Math.round((count / total) * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML =
+        '<div class="bar-label">' + escapeHtml(label) + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="bar-val">' + count + ' (' + pct + '%)</div>';
+      container.appendChild(row);
+    });
+  }
+
+  function renderParticipants(participants){
+    const tbl = document.getElementById('tbl');
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+
+    participants
+      .slice()
+      .reverse()
+      .forEach(p => {
+        const tr = document.createElement('tr');
+
+        const answersText = Array.isArray(p.answers) ? p.answers.join(', ') : '—';
+
+        const cells = [
+          { text: p.name || '—' },
+          { text: p.role || '—' },
+          { text: p.contact || '—' },
+          { text: p.profile ? profileLabel(p.profile) : '—' },
+          { text: answersText, className: 'answers' },
+          { text: p.resultAt ? formatDate(p.resultAt) : '—' },
+          { text: p.booked ? 'да' : 'нет' },
+          { text: p.createdAt ? formatDate(p.createdAt) : '—' }
+        ];
+
+        cells.forEach(({ text, className }) => {
+          const td = document.createElement('td');
+          if(className) td.className = className;
+          td.textContent = text;
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+    tbl.style.display = participants.length ? 'table' : 'none';
   }
 
   function profileLabel(key){
@@ -106,6 +189,12 @@
   function formatDate(iso){
     const d = new Date(iso);
     return d.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function escapeHtml(s){
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
   }
 
   if(savedToken){ load(); }
