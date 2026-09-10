@@ -184,6 +184,16 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
   }
 });
 
+// ---- Обработка ошибок: не отдаём наружу стек и внутренние пути ----
+app.use((req, res) => {
+  res.status(404).json({ error: 'Не найдено' });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: 'Некорректный запрос' });
+});
+
 app.listen(PORT, () => {
   console.log('Сервер запущен: http://localhost:' + PORT);
 });

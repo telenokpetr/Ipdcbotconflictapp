@@ -61,6 +61,7 @@ ADMIN_TOKEN=ваш-токен PORT=3000 node server.js
    WorkingDirectory=/var/www/conflict-app
    ExecStart=/usr/bin/node server.js
    Restart=on-failure
+   Environment=NODE_ENV=production
    Environment=PORT=3000
    Environment=ADMIN_TOKEN=длинная-случайная-строка
    User=www-data
