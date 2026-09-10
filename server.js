@@ -57,15 +57,20 @@ function isNonEmptyString(v, maxLen) {
   return typeof v === 'string' && v.trim().length > 0 && v.trim().length <= maxLen;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // ---- Регистрация участника ----
 app.post('/api/register', async (req, res) => {
-  const { name, role, contact, consent } = req.body || {};
+  const { name, role, phone, email, consent } = req.body || {};
 
   if (!isNonEmptyString(name, 200)) {
     return res.status(400).json({ error: 'Укажите имя' });
   }
-  if (!isNonEmptyString(contact, 200)) {
-    return res.status(400).json({ error: 'Укажите email или телефон' });
+  if (!isNonEmptyString(phone, 50)) {
+    return res.status(400).json({ error: 'Укажите телефон' });
+  }
+  if (!isNonEmptyString(email, 200) || !EMAIL_RE.test(email.trim())) {
+    return res.status(400).json({ error: 'Укажите корректный email' });
   }
   if (role !== undefined && role !== null && (typeof role !== 'string' || role.length > 200)) {
     return res.status(400).json({ error: 'Некорректное значение роли' });
@@ -78,7 +83,8 @@ app.post('/api/register', async (req, res) => {
     const participant = await db.createParticipant({
       name: name.trim(),
       role: role ? role.trim() : null,
-      contact: contact.trim()
+      phone: phone.trim(),
+      email: email.trim()
     });
     res.json({ id: participant.id });
   } catch (e) {

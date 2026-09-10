@@ -66,7 +66,7 @@
     <table id="tbl" style="display:none;">
       <thead>
         <tr>
-          <th>Имя</th><th>Роль</th><th>Контакт</th><th>Профиль</th><th>Ответы</th><th>Тест пройден</th><th>Бронь</th><th>Регистрация</th>
+          <th>Имя</th><th>Роль</th><th>Телефон</th><th>Email</th><th>Профиль</th><th>Ответы</th><th>Тест пройден</th><th>Бронь</th><th>Регистрация</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -161,7 +161,8 @@
         const cells = [
           { text: p.name || '—' },
           { text: p.role || '—' },
-          { text: p.contact || '—' },
+          { text: p.phone || '—' },
+          { text: p.email || '—' },
           { text: p.profile ? profileLabel(p.profile) : '—' },
           { text: answersText, className: 'answers' },
           { text: p.resultAt ? formatDate(p.resultAt) : '—' },

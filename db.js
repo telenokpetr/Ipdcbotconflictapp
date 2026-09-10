@@ -45,14 +45,15 @@ function withLock(fn) {
   return result;
 }
 
-function createParticipant({ name, role, contact }) {
+function createParticipant({ name, role, phone, email }) {
   return withLock(() => {
     const data = readAll();
     const participant = {
       id: require('crypto').randomUUID(),
       name,
       role: role || null,
-      contact,
+      phone,
+      email,
       consent: true,
       consentAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
