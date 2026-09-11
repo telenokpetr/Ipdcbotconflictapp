@@ -144,21 +144,21 @@
   <!-- 1. ПРИВЕТСТВИЕ -->
   <section class="screen active" data-screen="0">
     <p class="eyebrow">IPDC · пульс-диагностика</p>
-    <h1 class="headline">Как вы обращаетесь с конфликтом интересов?</h1>
-    <p class="body">5 минут — и вы получите представление о своей конфликтной устойчивости и зонах роста.</p>
+    <h1 class="headline" id="c-headline">Как вы обращаетесь с конфликтом интересов?</h1>
+    <p class="body" id="c-intro">5 минут — и вы получите представление о своей конфликтной устойчивости и зонах роста.</p>
 
     <div class="card">
-      <p class="card-title">Тренинг «Конфликт интересов»</p>
-      <p class="body" style="margin-bottom:0;">Формат групповой работы, кейсов и проживания ролей — для тех, кто регулярно сталкивается со столкновением интересов в команде и в переговорах.</p>
+      <p class="card-title" id="c-trainingTitle">Тренинг «Конфликт интересов»</p>
+      <p class="body" id="c-trainingDescription" style="margin-bottom:0;">Формат групповой работы, кейсов и проживания ролей — для тех, кто регулярно сталкивается со столкновением интересов в команде и в переговорах.</p>
     </div>
 
     <div class="card">
-      <div class="meta-row"><span>Ведущие</span><span class="dot">·</span><span>преподаватели IPDC, 12 лет опыта</span></div>
-      <div class="meta-row"><span>Группа</span><span class="dot">·</span><span>до 20 человек</span></div>
-      <div class="meta-row" style="margin-bottom:0;"><span>Участники</span><span class="dot">·</span><span>руководители, консультанты, коучи, HR</span></div>
+      <div class="meta-row"><span>Ведущие</span><span class="dot">·</span><span id="c-leaders">преподаватели IPDC, 12 лет опыта</span></div>
+      <div class="meta-row"><span>Группа</span><span class="dot">·</span><span id="c-groupSize">до 20 человек</span></div>
+      <div class="meta-row" style="margin-bottom:0;"><span>Участники</span><span class="dot">·</span><span id="c-audience">руководители, консультанты, коучи, HR</span></div>
     </div>
 
-    <p class="body dim">Сначала — короткая диагностика. Она покажет, где вы сейчас находитесь и что может стать следующим шагом. Это не тест на правильность.</p>
+    <p class="body dim" id="c-preTestNote">Сначала — короткая диагностика. Она покажет, где вы сейчас находитесь и что может стать следующим шагом. Это не тест на правильность.</p>
 
     <div class="spacer"></div>
     <button class="btn btn-primary" onclick="goTo(1)">Начать</button>
@@ -247,17 +247,17 @@
   <!-- 6. ПРИГЛАШЕНИЕ -->
   <section class="screen" data-screen="5">
     <p class="eyebrow">Приглашение</p>
-    <h2 class="headline">Тренинг «Конфликт интересов»</h2>
-    <p class="body">Не курс лекций — пространство, где вы проверите свои гипотезы, увидите свои паттерны и освоите новый способ обращения с конфликтами.</p>
+    <h2 class="headline" id="c-invitationTitle">Тренинг «Конфликт интересов»</h2>
+    <p class="body" id="c-invitationDescription">Не курс лекций — пространство, где вы проверите свои гипотезы, увидите свои паттерны и освоите новый способ обращения с конфликтами.</p>
 
     <div class="card">
-      <div class="session-row"><span class="k">Даты</span><span>11 и 18 февраля</span></div>
-      <div class="session-row"><span class="k">Время</span><span>18:00–21:00 МСК</span></div>
-      <div class="session-row"><span class="k">Формат</span><span>Онлайн, Zoom</span></div>
-      <div class="session-row"><span class="k">Группа</span><span>до 20 человек</span></div>
+      <div class="session-row"><span class="k">Даты</span><span id="c-sessionDates">11 и 18 февраля</span></div>
+      <div class="session-row"><span class="k">Время</span><span id="c-sessionTime">18:00–21:00 МСК</span></div>
+      <div class="session-row"><span class="k">Формат</span><span id="c-sessionFormat">Онлайн, Zoom</span></div>
+      <div class="session-row"><span class="k">Группа</span><span id="c-sessionGroupSize">до 20 человек</span></div>
     </div>
 
-    <p class="body dim">Ваш профиль по результатам диагностики сохранён — это поможет ведущим точнее подобрать акценты для вашей группы.</p>
+    <p class="body dim" id="c-afterNote">Ваш профиль по результатам диагностики сохранён — это поможет ведущим точнее подобрать акценты для вашей группы.</p>
 
     <div class="spacer"></div>
     <button class="btn btn-primary" id="bookBtn" onclick="submitBooking()">Забронировать место</button>
@@ -563,6 +563,39 @@
     }
   }
 
+  async function loadContent(){
+    try{
+      const res = await fetch('/api/content');
+      if(!res.ok) return;
+      const c = await res.json();
+      const map = {
+        'c-headline': c.headline,
+        'c-intro': c.intro,
+        'c-trainingTitle': c.trainingTitle,
+        'c-trainingDescription': c.trainingDescription,
+        'c-leaders': c.leaders,
+        'c-groupSize': c.groupSize,
+        'c-audience': c.audience,
+        'c-preTestNote': c.preTestNote,
+        'c-invitationTitle': c.invitationTitle,
+        'c-invitationDescription': c.invitationDescription,
+        'c-sessionDates': c.sessionDates,
+        'c-sessionTime': c.sessionTime,
+        'c-sessionFormat': c.sessionFormat,
+        'c-sessionGroupSize': c.sessionGroupSize,
+        'c-afterNote': c.afterNote
+      };
+      Object.entries(map).forEach(([id, val]) => {
+        if(typeof val === 'string'){
+          const el = document.getElementById(id);
+          if(el) el.textContent = val;
+        }
+      });
+    }catch(e){
+      // нет связи с сервером — остаются тексты по умолчанию, зашитые в HTML
+    }
+  }
+
   function showToast(msg){
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -577,6 +610,7 @@
 
   buildRail();
   updateRail();
+  loadContent();
   document.getElementById('fName').addEventListener('input', checkRegForm);
   document.getElementById('fRole').addEventListener('input', checkRegForm);
   document.getElementById('fPhone').addEventListener('input', checkRegForm);
