@@ -8,6 +8,27 @@ const path = require('path');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'participants.json');
+const CONTENT_FILE = path.join(DATA_DIR, 'content.json');
+
+// Редактируемые через админку тексты и даты лендинга.
+// Значения по умолчанию — то, что раньше было зашито в public/index.html.
+const DEFAULT_CONTENT = {
+  headline: 'Как вы обращаетесь с конфликтом интересов?',
+  intro: '5 минут — и вы получите представление о своей конфликтной устойчивости и зонах роста.',
+  trainingTitle: 'Тренинг «Конфликт интересов»',
+  trainingDescription: 'Формат групповой работы, кейсов и проживания ролей — для тех, кто регулярно сталкивается со столкновением интересов в команде и в переговорах.',
+  leaders: 'преподаватели IPDC, 12 лет опыта',
+  groupSize: 'до 20 человек',
+  audience: 'руководители, консультанты, коучи, HR',
+  preTestNote: 'Сначала — короткая диагностика. Она покажет, где вы сейчас находитесь и что может стать следующим шагом. Это не тест на правильность.',
+  invitationTitle: 'Тренинг «Конфликт интересов»',
+  invitationDescription: 'Не курс лекций — пространство, где вы проверите свои гипотезы, увидите свои паттерны и освоите новый способ обращения с конфликтами.',
+  sessionDates: '11 и 18 февраля',
+  sessionTime: '18:00–21:00 МСК',
+  sessionFormat: 'Онлайн, Zoom',
+  sessionGroupSize: 'до 20 человек',
+  afterNote: 'Ваш профиль по результатам диагностики сохранён — это поможет ведущим точнее подобрать акценты для вашей группы.'
+};
 
 function ensureStore() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -127,11 +148,52 @@ function listParticipants() {
   return list;
 }
 
+function ensureContentStore() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(CONTENT_FILE)) {
+    fs.writeFileSync(CONTENT_FILE, JSON.stringify(DEFAULT_CONTENT, null, 2), 'utf8');
+  }
+}
+
+function getContent() {
+  ensureContentStore();
+  let saved = {};
+  try {
+    saved = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf8'));
+  } catch (e) {
+    saved = {};
+  }
+  return Object.assign({}, DEFAULT_CONTENT, saved);
+}
+
+// patch может содержать только часть полей — остальные остаются как были
+function saveContent(patch) {
+  return withLock(() => {
+    const current = getContent();
+    const next = Object.assign({}, current);
+    Object.keys(DEFAULT_CONTENT).forEach(key => {
+      if (typeof patch[key] === 'string') {
+        next[key] = patch[key].trim();
+      }
+    });
+    ensureContentStore();
+    const tmpFile = CONTENT_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(next, null, 2), 'utf8');
+    fs.renameSync(tmpFile, CONTENT_FILE);
+    return next;
+  });
+}
+
 module.exports = {
   createParticipant,
   findParticipant,
   saveResult,
   markBooked,
   listParticipants,
+  getContent,
+  saveContent,
+  CONTENT_FIELDS: Object.keys(DEFAULT_CONTENT),
   MAX_ATTEMPTS
 };
