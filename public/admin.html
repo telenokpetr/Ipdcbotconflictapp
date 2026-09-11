@@ -36,6 +36,20 @@
   .bar-track{ flex:1; background:var(--surface); border:1px solid var(--line); border-radius:6px; height:16px; overflow:hidden; }
   .bar-fill{ height:100%; background:var(--accent-gold); }
   .bar-row .bar-val{ width:70px; flex-shrink:0; text-align:right; }
+
+  .content-form{ display:flex; flex-direction:column; gap:14px; max-width:640px; }
+  .content-field label{ display:block; font-size:12.5px; color:var(--text-dim); margin-bottom:5px; }
+  .content-field input, .content-field textarea{
+    width:100%; background:var(--surface); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:9px 11px; font-family:inherit;
+  }
+  .content-field textarea{ resize:vertical; min-height:56px; line-height:1.4; }
+  .content-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:520px){ .content-grid{ grid-template-columns:1fr; } }
+  .content-save-row{ display:flex; align-items:center; gap:12px; }
+  .content-status{ font-size:13px; color:var(--text-dim); }
+  .content-status.err{ color:var(--error, #C0554E); }
+  .content-status.ok{ color:var(--accent-gold); }
 </style>
 </head>
 <body>
@@ -59,6 +73,80 @@
 
     <h2>По ролям</h2>
     <div class="bars" id="roleBars"></div>
+  </div>
+
+  <div id="contentBlock" style="display:none;">
+    <h2>Содержимое лендинга (даты и тексты)</h2>
+    <div class="content-form" id="contentForm">
+      <div class="content-field">
+        <label for="f-headline">Заголовок на первом экране</label>
+        <input type="text" id="f-headline" data-key="headline">
+      </div>
+      <div class="content-field">
+        <label for="f-intro">Подзаголовок-интро</label>
+        <textarea id="f-intro" data-key="intro"></textarea>
+      </div>
+      <div class="content-field">
+        <label for="f-trainingTitle">Название тренинга (карточка на первом экране)</label>
+        <input type="text" id="f-trainingTitle" data-key="trainingTitle">
+      </div>
+      <div class="content-field">
+        <label for="f-trainingDescription">Описание тренинга (карточка на первом экране)</label>
+        <textarea id="f-trainingDescription" data-key="trainingDescription"></textarea>
+      </div>
+      <div class="content-grid">
+        <div class="content-field">
+          <label for="f-leaders">Ведущие</label>
+          <input type="text" id="f-leaders" data-key="leaders">
+        </div>
+        <div class="content-field">
+          <label for="f-groupSize">Размер группы (первый экран)</label>
+          <input type="text" id="f-groupSize" data-key="groupSize">
+        </div>
+        <div class="content-field">
+          <label for="f-audience">Участники (для кого тренинг)</label>
+          <input type="text" id="f-audience" data-key="audience">
+        </div>
+      </div>
+      <div class="content-field">
+        <label for="f-preTestNote">Текст перед началом теста</label>
+        <textarea id="f-preTestNote" data-key="preTestNote"></textarea>
+      </div>
+      <div class="content-field">
+        <label for="f-invitationTitle">Заголовок приглашения (экран после результата)</label>
+        <input type="text" id="f-invitationTitle" data-key="invitationTitle">
+      </div>
+      <div class="content-field">
+        <label for="f-invitationDescription">Текст приглашения</label>
+        <textarea id="f-invitationDescription" data-key="invitationDescription"></textarea>
+      </div>
+      <div class="content-grid">
+        <div class="content-field">
+          <label for="f-sessionDates">Даты тренинга</label>
+          <input type="text" id="f-sessionDates" data-key="sessionDates">
+        </div>
+        <div class="content-field">
+          <label for="f-sessionTime">Время</label>
+          <input type="text" id="f-sessionTime" data-key="sessionTime">
+        </div>
+        <div class="content-field">
+          <label for="f-sessionFormat">Формат</label>
+          <input type="text" id="f-sessionFormat" data-key="sessionFormat">
+        </div>
+        <div class="content-field">
+          <label for="f-sessionGroupSize">Размер группы (карточка приглашения)</label>
+          <input type="text" id="f-sessionGroupSize" data-key="sessionGroupSize">
+        </div>
+      </div>
+      <div class="content-field">
+        <label for="f-afterNote">Текст после карточки с датами</label>
+        <textarea id="f-afterNote" data-key="afterNote"></textarea>
+      </div>
+      <div class="content-save-row">
+        <button onclick="saveContent()">Сохранить содержимое</button>
+        <span class="content-status" id="contentStatus"></span>
+      </div>
+    </div>
   </div>
 
   <h2>Данные участников и ответы</h2>
@@ -97,6 +185,7 @@
 
       renderStats(statsData);
       renderParticipants(participantsData.participants);
+      await loadContentForm();
 
       statusEl.textContent = participantsData.participants.length
         ? ('Всего участников: ' + participantsData.participants.length)
@@ -105,6 +194,48 @@
       statusEl.textContent = 'Ошибка: ' + (err.message || 'не удалось загрузить данные');
       document.getElementById('tbl').style.display = 'none';
       document.getElementById('statsBlock').style.display = 'none';
+      document.getElementById('contentBlock').style.display = 'none';
+    }
+  }
+
+  function contentFields(){
+    return Array.from(document.querySelectorAll('#contentForm [data-key]'));
+  }
+
+  async function loadContentForm(){
+    const res = await fetch('/api/content');
+    if(!res.ok) return;
+    const content = await res.json();
+    contentFields().forEach(el => {
+      const key = el.dataset.key;
+      if(typeof content[key] === 'string'){ el.value = content[key]; }
+    });
+    document.getElementById('contentBlock').style.display = 'block';
+  }
+
+  async function saveContent(){
+    const token = document.getElementById('tokenInput').value.trim();
+    const statusEl = document.getElementById('contentStatus');
+    if(!token){ statusEl.textContent = 'Введите токен администратора.'; statusEl.className = 'content-status err'; return; }
+
+    const payload = {};
+    contentFields().forEach(el => { payload[el.dataset.key] = el.value; });
+
+    statusEl.textContent = 'Сохранение…';
+    statusEl.className = 'content-status';
+    try{
+      const res = await fetch('/api/admin/content', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(!res.ok){ throw new Error(data.error || 'Не удалось сохранить'); }
+      statusEl.textContent = 'Сохранено.';
+      statusEl.className = 'content-status ok';
+    }catch(err){
+      statusEl.textContent = 'Ошибка: ' + (err.message || 'не удалось сохранить');
+      statusEl.className = 'content-status err';
     }
   }
 
