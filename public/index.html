@@ -401,11 +401,16 @@
     document.getElementById('registerBtn').disabled = !document.getElementById('consentBox').checked;
   }
 
+  const MIN_PHONE_DIGITS = 10;
+  function phoneDigitCount(v){
+    return (v.match(/\d/g) || []).length;
+  }
+
   function checkRegForm(){
     const name = document.getElementById('fName').value.trim();
     const phone = document.getElementById('fPhone').value.trim();
     const email = document.getElementById('fEmail').value.trim();
-    document.getElementById('toTestBtn').disabled = !(name && phone && email);
+    document.getElementById('toTestBtn').disabled = !(name && phoneDigitCount(phone) >= MIN_PHONE_DIGITS && email);
   }
 
   function showRegError(msg){
