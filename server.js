@@ -153,6 +153,35 @@ app.post('/api/booking', async (req, res) => {
   }
 });
 
+// ---- Содержимое лендинга (даты тренинга, тексты) — отдаётся всем, редактируется только админом ----
+app.get('/api/content', (req, res) => {
+  try {
+    res.json(db.getContent());
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Не удалось прочитать содержимое' });
+  }
+});
+
+app.put('/api/admin/content', requireAdmin, async (req, res) => {
+  const patch = req.body || {};
+  for (const key of Object.keys(patch)) {
+    if (!db.CONTENT_FIELDS.includes(key)) {
+      return res.status(400).json({ error: `Неизвестное поле: ${key}` });
+    }
+    if (!isNonEmptyString(patch[key], 2000)) {
+      return res.status(400).json({ error: `Поле «${key}» не должно быть пустым (макс. 2000 символов)` });
+    }
+  }
+  try {
+    const content = await db.saveContent(patch);
+    res.json(content);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Не удалось сохранить содержимое' });
+  }
+});
+
 // ---- Админ: список участников (для просмотра регистраций/результатов) ----
 app.get('/api/admin/participants', requireAdmin, (req, res) => {
   try {
