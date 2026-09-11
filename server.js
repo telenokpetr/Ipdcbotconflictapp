@@ -58,6 +58,11 @@ function isNonEmptyString(v, maxLen) {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PHONE_DIGITS = 10;
+
+function countDigits(v) {
+  return (String(v).match(/\d/g) || []).length;
+}
 
 // ---- Регистрация участника ----
 app.post('/api/register', async (req, res) => {
@@ -66,8 +71,8 @@ app.post('/api/register', async (req, res) => {
   if (!isNonEmptyString(name, 200)) {
     return res.status(400).json({ error: 'Укажите имя' });
   }
-  if (!isNonEmptyString(phone, 50)) {
-    return res.status(400).json({ error: 'Укажите телефон' });
+  if (!isNonEmptyString(phone, 50) || countDigits(phone) < MIN_PHONE_DIGITS) {
+    return res.status(400).json({ error: `Укажите телефон (не менее ${MIN_PHONE_DIGITS} цифр)` });
   }
   if (!isNonEmptyString(email, 200) || !EMAIL_RE.test(email.trim())) {
     return res.status(400).json({ error: 'Укажите корректный email' });
