@@ -261,7 +261,7 @@
 
     <div class="spacer"></div>
     <button class="btn btn-primary" id="bookBtn" onclick="submitBooking()">Забронировать место</button>
-    <button class="btn btn-ghost" onclick="showToast('Ссылка на подробную программу тренинга')">Узнать программу тренинга</button>
+    <button class="btn btn-ghost" onclick="openCoordinator()">Узнать программу тренинга</button>
   </section>
 
 </div>
@@ -598,6 +598,15 @@
       });
     }catch(e){
       // нет связи с сервером — остаются тексты по умолчанию, зашитые в HTML
+    }
+  }
+
+  function openCoordinator(){
+    const url = 'https://t.me/anna_ako';
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+      window.open(url, '_blank');
     }
   }
 
