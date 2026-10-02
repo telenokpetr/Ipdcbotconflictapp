@@ -245,6 +245,8 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: 'Некорректный запрос' });
 });
 
-app.listen(PORT, () => {
+// HOST=127.0.0.1 — слушать только локально (за nginx); по умолчанию все интерфейсы, как раньше
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
   console.log('Сервер запущен: http://localhost:' + PORT);
 });
